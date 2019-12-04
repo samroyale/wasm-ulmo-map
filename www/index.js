@@ -117,7 +117,7 @@ max of last 100 = ${Math.round(max)}
 const testUlmoButton = document.getElementById("test-ulmo");
 const testResults = document.getElementById("test-results");
 
-const formatResult = result => {
+const formatApplyMoveResult = result => {
     return `Result { valid: ${result.is_valid()}, deferral: ${result.get_deferral()}, level: ${result.get_level()}, mx: ${result.get_mx()}, my: ${result.get_my()} }\n`;
 };
 
@@ -126,19 +126,19 @@ const runTest = () => {
 
     // valid
     let result = playMap.apply_move(0, 0, 4, Rect.new(4, 2, 16, 8));
-    results += formatResult(result);
+    results += formatApplyMoveResult(result);
 
     // shuffle
     result = playMap.apply_move(2, 0, 4, Rect.new(0, 12, 16, 8));
-    results += formatResult(result);
+    results += formatApplyMoveResult(result);
 
     // slide
     result = playMap.apply_move(2, 2, 2, Rect.new(0, 44, 16, 8));
-    results += formatResult(result);
+    results += formatApplyMoveResult(result);
 
     // invalid
     result = playMap.apply_move(2, 0, 2, Rect.new(0, 34, 16, 8));
-    results += formatResult(result);
+    results += formatApplyMoveResult(result);
 
     testResults.textContent = results;
 };

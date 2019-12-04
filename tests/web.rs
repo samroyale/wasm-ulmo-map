@@ -13,7 +13,7 @@ fn pass() {
 }
 
 extern crate wasm_ulmo_map;
-use wasm_ulmo_map::{PlayMap, Rect, MapTileData, PlayMapData, MapTile};
+use wasm_ulmo_map::{PlayMap, Rect, MapTileData, PlayMapData, TileMasks};
 
 // [4] [S4] [4]  <- level 4
 // [X] [S3] [X]  <- top of steps + wall on either side
@@ -43,7 +43,7 @@ pub fn an_example_play_map() -> PlayMap {
 // [X] [D6-4] [X]  <- drop level + wall on either side
 // [X]  [X]   [X]  <- wall
 // [2]  [2]   [2]  <- level 2
-pub fn another_example_play_map() -> PlayMap {
+pub fn an_example_play_map_with_down_levels() -> PlayMap {
     let map_tiles = vec![
         MapTileData::with_levels(vec![6]),           // 0
         MapTileData::with_levels(vec![6]),           // 1
@@ -60,6 +60,198 @@ pub fn another_example_play_map() -> PlayMap {
     ];
 
     PlayMap::from_data(PlayMapData::new(4, 3, map_tiles, 16))
+}
+
+// [6]  [6]   [6]  <- level 6
+// [X] [D6-4] [X]  <- drop level + wall on either side
+// [X]  [X]   [X]  <- wall
+// [2]  [2]   [2]  <- level 2
+pub fn an_example_play_map_with_masks() -> PlayMap {
+    let map_tiles = vec![
+        MapTileData::empty(),                            // 0
+        MapTileData::empty(),                            // 1
+        MapTileData::empty(),                            // 2
+        MapTileData::with_masks(vec![(1, 4, true, 1)]),  // 3
+        MapTileData::with_masks(vec![(1, 4, true, 1)]),  // 4
+        MapTileData::with_masks(vec![(1, 4, true, 1)]),  // 5
+        MapTileData::with_masks(vec![(0, 2, false, 2)]), // 6
+        MapTileData::with_masks(vec![(0, 2, false, 2)]), // 7
+        MapTileData::with_masks(vec![(0, 2, false, 2)]), // 8
+        MapTileData::empty(),                            // 9
+        MapTileData::empty(),                            // 10
+        MapTileData::empty(),                            // 11
+    ];
+
+    PlayMap::from_data(PlayMapData::new(4, 3, map_tiles, 16))
+}
+
+fn get_z_index(rect: Rect, level: i32, tile_size: u8) -> i32 {
+    let (_, bottom) = rect.bottom_right();
+    return bottom + level * tile_size as i32;
+}
+
+#[wasm_bindgen_test]
+pub fn test_play_map_get_masks_spright_upright() {
+    let play_map = an_example_play_map_with_masks();
+
+    /*
+     * spans [] []
+     */
+    let sprite_rect = Rect::new(8, 2, 16, 8);
+    // sprite level 2
+    let sprite_z = get_z_index(sprite_rect, 2, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, true);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
+    // sprite level 4
+    let sprite_z = get_z_index(sprite_rect, 4, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, true);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
+
+    /*
+     * spans   []     []
+     *       [m4 1] [m4 1]
+     */
+    let sprite_rect = Rect::new(8, 12, 16, 8);
+    // sprite level 2
+    let sprite_z = get_z_index(sprite_rect, 2, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, true);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 2);
+    let mask1 = masks.get(0).unwrap();
+    assert_eq!(mask1, &TileMasks::new(0, 1, vec![1]));
+    let mask2 = masks.get(1).unwrap();
+    assert_eq!(mask2, &TileMasks::new(1, 1, vec![1]));
+    // sprite level 4
+    let sprite_z = get_z_index(sprite_rect, 4, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, true);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
+
+    /*
+     * spans [m4 1] [m4 1]
+     *       [m2 0] [m2 0]
+     */
+    let sprite_rect = Rect::new(8, 28, 16, 8);
+    // sprite level 2
+    let sprite_z = get_z_index(sprite_rect, 2, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, true);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 4);
+    let mask1 = masks.get(0).unwrap();
+    assert_eq!(mask1, &TileMasks::new(0, 1, vec![1]));
+    let mask2 = masks.get(1).unwrap();
+    assert_eq!(mask2, &TileMasks::new(0, 2, vec![0]));
+    let mask3 = masks.get(2).unwrap();
+    assert_eq!(mask3, &TileMasks::new(1, 1, vec![1]));
+    let mask4 = masks.get(3).unwrap();
+    assert_eq!(mask4, &TileMasks::new(1, 2, vec![0]));
+    // sprite level 4
+    let sprite_z = get_z_index(sprite_rect, 4, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, true);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
+
+    /*
+     * spans [m2 0] [m2 0]
+     *         []     []
+     */
+    let sprite_rect = Rect::new(8, 44, 16, 8);
+    // sprite level 2
+    let sprite_z = get_z_index(sprite_rect, 2, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, true);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
+    // sprite level 4
+    let sprite_z = get_z_index(sprite_rect, 4, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, true);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
+}
+
+#[wasm_bindgen_test]
+pub fn test_play_map_get_masks_sprite_flat() {
+    let play_map = an_example_play_map_with_masks();
+
+    /*
+     * spans [] []
+     */
+    let sprite_rect = Rect::new(8, 2, 16, 8);
+    // sprite level 2
+    let sprite_z = get_z_index(sprite_rect, 2, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, false);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
+    // sprite level 4
+    let sprite_z = get_z_index(sprite_rect, 4, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, false);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
+
+    /*
+     * spans   []     []
+     *       [m4 1] [m4 1]
+     */
+    let sprite_rect = Rect::new(8, 12, 16, 8);
+    // sprite level 2
+    let sprite_z = get_z_index(sprite_rect, 2, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, false);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 2);
+    let mask1 = masks.get(0).unwrap();
+    assert_eq!(mask1, &TileMasks::new(0, 1, vec![1]));
+    let mask2 = masks.get(1).unwrap();
+    assert_eq!(mask2, &TileMasks::new(1, 1, vec![1]));
+    // sprite level 4
+    let sprite_z = get_z_index(sprite_rect, 4, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, false);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
+
+    /*
+     * spans [m4 1] [m4 1]
+     *       [m2 0] [m2 0]
+     */
+    let sprite_rect = Rect::new(8, 28, 16, 8);
+    // sprite level 2
+    let sprite_z = get_z_index(sprite_rect, 2, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, false);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 4);
+    let mask1 = masks.get(0).unwrap();
+    assert_eq!(mask1, &TileMasks::new(0, 1, vec![1]));
+    let mask2 = masks.get(1).unwrap();
+    assert_eq!(mask2, &TileMasks::new(0, 2, vec![0]));
+    let mask3 = masks.get(2).unwrap();
+    assert_eq!(mask3, &TileMasks::new(1, 1, vec![1]));
+    let mask4 = masks.get(3).unwrap();
+    assert_eq!(mask4, &TileMasks::new(1, 2, vec![0]));
+    // sprite level 4
+    let sprite_z = get_z_index(sprite_rect, 4, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, false);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 2); // TODO: should be 0?
+
+    /*
+     * spans [m2 0] [m2 0]
+     *         []     []
+     */
+    let sprite_rect = Rect::new(8, 44, 16, 8);
+    // sprite level 2
+    let sprite_z = get_z_index(sprite_rect, 2, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, false);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 2);
+    let mask1 = masks.get(0).unwrap();
+    assert_eq!(mask1, &TileMasks::new(0, 2, vec![0]));
+    let mask2 = masks.get(1).unwrap();
+    assert_eq!(mask2, &TileMasks::new(1, 2, vec![0]));
+    // sprite level 4
+    let sprite_z = get_z_index(sprite_rect, 4, 16);
+    let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, false);
+    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    assert_eq!(masks.len(), 0);
 }
 
 #[wasm_bindgen_test]
@@ -325,7 +517,7 @@ pub fn test_play_map_add_and_rollback() {
 
 #[wasm_bindgen_test]
 pub fn test_play_map_get_event() {
-    let play_map = another_example_play_map();
+    let play_map = an_example_play_map_with_down_levels();
 
     /*
      * spans [6] [D6-4]
@@ -358,46 +550,6 @@ pub fn test_play_map_get_event() {
 
 /*
 #[wasm_bindgen_test]
-pub fn test_play_map_is_move_valid() {
-    let play_map = PlayMap::new(4, 3, some_map_tiles());
-
-    let (valid, level) = play_map.is_move_valid(4, Rect::new(4, 2, 16, 8));
-    assert!(valid);
-    assert_eq!(level, 4);
-    let (valid, level) = play_map.is_move_valid(3, Rect::new(4, 18, 16, 8));
-    assert_eq!(valid, false);
-    assert_eq!(level, 3);
-    let (valid, level) = play_map.is_move_valid(3, Rect::new(4, 34, 16, 8));
-    assert_eq!(valid, false);
-    assert_eq!(level, 3);
-    let (valid, level) = play_map.is_move_valid(2, Rect::new(4, 50, 16, 8));
-    assert!(valid);
-    assert_eq!(level, 2);
-
-    let (valid, level) = play_map.is_move_valid(4, Rect::new(20, 2, 8, 16));
-    assert!(valid);
-    assert_eq!(level, 4);
-    let (valid, level) = play_map.is_move_valid(3, Rect::new(20, 2, 8, 16));
-    assert!(valid);
-    assert_eq!(level, 4);
-    let (valid, level) = play_map.is_move_valid(4, Rect::new(20, 20, 8, 16));
-    assert!(valid);
-    assert_eq!(level, 3);
-    let (valid, level) = play_map.is_move_valid(3, Rect::new(20, 20, 8, 16));
-    assert!(valid);
-    assert_eq!(level, 3);
-    let (valid, level) = play_map.is_move_valid(2, Rect::new(20, 20, 8, 16));
-    assert!(valid);
-    assert_eq!(level, 3);
-    let (valid, level) = play_map.is_move_valid(3, Rect::new(20, 36, 8, 16));
-    assert!(valid);
-    assert_eq!(level, 2);
-    let (valid, level) = play_map.is_move_valid(2, Rect::new(20, 36, 8, 16));
-    assert!(valid);
-    assert_eq!(level, 2);
-}
-
-#[wasm_bindgen_test]
 pub fn test_map_tile_levels() {
     let map_tile = MapTile::with_levels(vec![4, 6]);
     let (inc, level) = map_tile.get_validity_of(4);
@@ -421,26 +573,26 @@ pub fn test_map_tile_down_levels() {
     assert_eq!(inc, 0);
     assert!(level.is_none());
 }
-*/
 
-//#[wasm_bindgen_test]
-//pub fn test_map_tile_add_new_level() {
-//    let map_tile_data = MapTileData::with_levels(vec![1, 2, 3]);
-//    let mut map_tile = MapTile::from_data(map_tile_data);
-//    let (inc, level) = map_tile.get_validity_of(3);
-//    assert_eq!(inc, 1);
-//    assert!(level.is_none());
-//    let (inc, level) = map_tile.get_validity_of(4);
-//    assert_eq!(inc, 0);
-//    assert!(level.is_none());
-//
-//    map_tile.add_level(4);
-//    let (inc, level) = map_tile.get_validity_of(4);
-//    assert_eq!(inc, 1);
-//    assert!(level.is_none());
-//
-//    map_tile.rollback();
-//    let (inc, level) = map_tile.get_validity_of(4);
-//    assert_eq!(inc, 0);
-//    assert!(level.is_none());
-//}
+#[wasm_bindgen_test]
+pub fn test_map_tile_add_new_level() {
+    let map_tile_data = MapTileData::with_levels(vec![1, 2, 3]);
+    let mut map_tile = MapTile::from_data(map_tile_data);
+    let (inc, level) = map_tile.get_validity_of(3);
+    assert_eq!(inc, 1);
+    assert!(level.is_none());
+    let (inc, level) = map_tile.get_validity_of(4);
+    assert_eq!(inc, 0);
+    assert!(level.is_none());
+
+    map_tile.add_level(4);
+    let (inc, level) = map_tile.get_validity_of(4);
+    assert_eq!(inc, 1);
+    assert!(level.is_none());
+
+    map_tile.rollback();
+    let (inc, level) = map_tile.get_validity_of(4);
+    assert_eq!(inc, 0);
+    assert!(level.is_none());
+}
+*/

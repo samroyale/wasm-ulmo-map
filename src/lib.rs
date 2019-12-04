@@ -93,32 +93,67 @@ impl Rect {
 pub struct  MapTileData {
     levels: Vec<i8>,
     down_levels: Vec<(i8, u8)>,
-    special_levels: Vec<i8>
+    special_levels: Vec<i8>,
+    masks: Vec<(u8, i8, bool, u8)>
 }
 
 impl MapTileData {
     pub fn new(
         levels: Vec<i8>,
         down_levels: Vec<(i8, u8)>,
-        special_levels: Vec<i8>
+        special_levels: Vec<i8>,
+        masks: Vec<(u8, i8, bool, u8)>
     ) -> MapTileData {
-        MapTileData { levels, down_levels, special_levels }
+        MapTileData { levels, down_levels, special_levels, masks }
     }
 
     pub fn empty() -> MapTileData {
-        Self::new(vec![], vec![], vec![])
+        Self::new(vec![], vec![], vec![], vec![])
     }
 
     pub fn with_levels(levels: Vec<i8>) -> MapTileData {
-        Self::new(levels, vec![], vec![])
+        Self::new(levels, vec![], vec![], vec![])
     }
 
     pub fn with_down_levels(down_levels: Vec<(i8, u8)>) -> MapTileData {
-        Self::new(vec![], down_levels, vec![])
+        Self::new(vec![], down_levels, vec![], vec![])
     }
 
     pub fn with_special_levels(special_levels: Vec<i8>) -> MapTileData {
-        Self::new(vec![], vec![], special_levels)
+        Self::new(vec![], vec![], special_levels, vec![])
+    }
+
+    pub fn with_masks(masks: Vec<(u8, i8, bool, u8)>) -> MapTileData {
+        Self::new(vec![], vec![], vec![], masks)
+    }
+}
+
+#[derive(Debug)]
+pub struct MaskInfo {
+    tile_index: u8,
+    level: i8,
+    flat: bool,
+    z1: i32,
+    z2: i32
+}
+
+impl MaskInfo {
+    pub fn new(
+        tile_index: u8,
+        level: i8,
+        flat: bool,
+        ty: u8,
+        tile_size: u32
+    ) -> MaskInfo {
+        let ts = tile_size as i32;
+        let z1 = ts * (ty as i32 + level as i32 + 1);
+        let z2 = if flat {
+            z1 + ts
+        }
+        else {
+            z1 + 2 * ts
+        };
+        MaskInfo { tile_index, level, flat, z1, z2}
     }
 }
 
@@ -128,6 +163,7 @@ pub struct MapTile {
     levels: Vec<i8>,
     down_levels: HashMap<i8, u8>,
     special_levels: BTreeMap<i8, i8>,
+    masks: Option<Vec<MaskInfo>>,
     old_levels: Option<Vec<i8>>
 }
 
@@ -135,12 +171,13 @@ impl MapTile {
     pub fn new(
         levels: Vec<i8>,
         down_levels: HashMap<i8, u8>,
-        special_levels: BTreeMap<i8, i8>
+        special_levels: BTreeMap<i8, i8>,
+        masks: Option<Vec<MaskInfo>>
     ) -> MapTile {
-        MapTile { levels, down_levels, special_levels, old_levels: None }
+        MapTile { levels, down_levels, special_levels, masks, old_levels: None }
     }
 
-    pub fn from_data(map_tile_data: MapTileData) -> MapTile {
+    pub fn from_data(map_tile_data: MapTileData, tile_size: &u32) -> MapTile {
         MapTile::new(
             map_tile_data.levels,
             map_tile_data.down_levels.into_iter().collect(),
@@ -153,8 +190,24 @@ impl MapTile {
                         vec![(l, l)]
                     }
                 })
-                .collect()
+                .collect(),
+            MapTile::as_masks(map_tile_data.masks, tile_size)
         )
+    }
+
+    fn as_masks(mask_data: Vec<(u8, i8, bool, u8)>, tile_size: &u32) -> Option<Vec<MaskInfo>> {
+        let mask_infos: Vec<MaskInfo> = mask_data.into_iter()
+            .map(|m| {
+                let (tile_index, level, flat, ty) = m;
+                MaskInfo::new(tile_index, level, flat, ty, *tile_size)
+            })
+            .collect();
+        if mask_infos.is_empty() {
+            None
+        }
+        else {
+            Some(mask_infos)
+        }
     }
 
     fn get_special_level(&self, level: &i8) -> Option<i8> {
@@ -206,6 +259,67 @@ impl MapTile {
         if let Some(levels) = &self.old_levels {
             self.levels = levels.clone(); // could we do this with a pointer or something?
             self.old_levels = None;
+        }
+    }
+
+//    pub fn get_masks(&self, sprite_z: i32, sprite_level: i8, sprite_upright: bool) -> Option<Vec<u8>> {
+////        log!("tile masks: {:?}", &self.masks);
+//        match &self.masks {
+//            None => None,
+//            Some(mask_infos) => Some(
+//                mask_infos.iter()
+//                    .filter(|mi| {
+//                        !(mi.flat && mi.level == sprite_level)
+//                    })
+//                    .filter(|mi| {
+//                        if sprite_upright {
+//                            log!("using z1: {} ({})", mi.z1, sprite_z);
+//                            mi.z1 > sprite_z
+//                        }
+//                        else {
+//                            log!("using z2: {} ({})", mi.z2, sprite_z);
+//                            mi.z2 > sprite_z
+//                        }
+//                    })
+//                    .map(|mi| {
+//                        log!("mapping: {} ({})", mi.z1, sprite_z);
+//                        mi.tile_index
+//                    })
+//                    .collect()
+//            ),
+//        }
+//    }
+    pub fn get_masks(&self, sprite_z: i32, sprite_level: i8, sprite_upright: bool) -> Option<Vec<u8>> {
+    //        log!("tile masks: {:?}", &self.masks);
+        match &self.masks {
+            None => None,
+            Some(mask_infos) => {
+                let tile_indices: Vec<u8> = mask_infos.iter()
+                    .filter(|mi| {
+                        !(mi.flat && mi.level == sprite_level)
+                    })
+                    .filter(|mi| {
+                        if sprite_upright {
+                            log!("using z1: {} ({})", mi.z1, sprite_z);
+                            mi.z1 > sprite_z
+                        }
+                        else {
+                            log!("using z2: {} ({})", mi.z2, sprite_z);
+                            mi.z2 > sprite_z
+                        }
+                    })
+                    .map(|mi| {
+                        log!("mapping: {} ({})", mi.z1, sprite_z);
+                        mi.tile_index
+                    })
+                    .collect();
+                if tile_indices.is_empty() {
+                    None
+                }
+                else {
+                    Some(tile_indices)
+                }
+            },
         }
     }
 }
@@ -294,6 +408,19 @@ impl MapEvent {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct TileMasks {
+    tx: u8,
+    ty: u8,
+    tile_indices: Vec<u8>
+}
+
+impl TileMasks {
+    pub fn new(tx: u8, ty: u8, tile_indices: Vec<u8>) -> TileMasks {
+        TileMasks { tx, ty, tile_indices }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct PlayMapData {
     rows: u8,
@@ -329,7 +456,7 @@ impl PlayMap {
         log!("apply_move: received {} {} {} {:?}", mx, my, level, base_rect);
         let new_base_rect = base_rect.move_rect(mx, my);
         let (span_tiles, verticals, horizontals) = self.get_span_tiles_with_stripes(&new_base_rect);
-        log!("span_tiles: {:?}", span_tiles);
+//        log!("span_tiles: {:?}", span_tiles);
 
         let (valid, new_level) = self.is_span_valid(level, &span_tiles);
         if valid {
@@ -341,13 +468,13 @@ impl PlayMap {
                 MoveResult::new(true, Deferral::DIAGONAL as u8, new_level, mx_delta, my_delta)
             }
         }
-        log!("primary move not valid");
+//        log!("primary move not valid");
 
         // movement invalid but we might be able to slide or shuffle
         if mx == 0 {
             // attempt shuffle left/right
             let (new_level, new_base_rect) = self.is_vertical_valid(level, &base_rect, &verticals);
-            log!("mx=0: {} {:?}", new_level, new_base_rect);
+//            log!("mx=0: {} {:?}", new_level, new_base_rect);
             if let Some(rect) = new_base_rect {
                 let (mx_delta, my_delta) = base_rect.top_left_delta(&rect);
                 return MoveResult::new(true, Deferral::DEFAULT as u8, new_level, mx_delta, my_delta);
@@ -356,7 +483,7 @@ impl PlayMap {
         else if my == 0 {
             // attempt shuffle up/down
             let (new_level, new_base_rect) = self.is_horizontal_valid(level, &base_rect, &horizontals);
-            log!("my=0: {} {:?}", new_level, new_base_rect);
+//            log!("my=0: {} {:?}", new_level, new_base_rect);
             if let Some(rect) = new_base_rect {
                 let (mx_delta, my_delta) = base_rect.top_left_delta(&rect);
                 return MoveResult::new(true, Deferral::DEFAULT as u8, new_level, mx_delta, my_delta);
@@ -365,7 +492,7 @@ impl PlayMap {
         else {
             // diagonal movement - attempt slide
             let (new_level, new_base_rect) = self.is_slide_valid(mx, my, level, &base_rect);
-            log!("diagonal: {} {:?}", new_level, new_base_rect);
+//            log!("diagonal: {} {:?}", new_level, new_base_rect);
             if let Some(rect) = new_base_rect {
                 let (mx_delta, my_delta) = base_rect.top_left_delta(&rect);
                 return MoveResult::new(true, Deferral::DEFAULT as u8, new_level, mx_delta, my_delta);
@@ -376,7 +503,7 @@ impl PlayMap {
     }
 
     pub fn get_event(&self, level: i8, base_rect: Rect) -> MapEvent {
-        log!("get_event: received {} {:?}", level, base_rect);
+//        log!("get_event: received {} {:?}", level, base_rect);
         let span_tiles = self.get_span_tiles(&base_rect);
         let falling = span_tiles.iter().all(| tile | {
             tile.get_down_level(&level).is_some()
@@ -391,6 +518,7 @@ impl PlayMap {
     }
 
     pub fn add_level_to_tile(&mut self, tx: u8, ty: u8, level: i8) {
+//        log!("add_level_to_tile: received {} {} {}", tx, ty, level);
         let index = self.get_index(tx, ty);
         if let Some(tile) = self.tiles.get_mut(index) {
             tile.add_level(level);
@@ -398,10 +526,18 @@ impl PlayMap {
     }
 
     pub fn rollback_tile(&mut self, tx: u8, ty: u8) {
+//        log!("rollback_tile: received {} {}", tx, ty);
         let index = self.get_index(tx, ty);
         if let Some(tile) = self.tiles.get_mut(index) {
             tile.rollback();
         }
+    }
+
+    pub fn get_js_sprite_masks(&self, rect: Rect, z: i32, level: i8, upright: bool) -> JsValue {
+        log!("get_js_sprite_masks: received {:?} {} {} {}", rect, z, level, upright);
+        let sprite_masks = self.get_sprite_masks(rect, z, level, upright);
+        log!("sprite masks: {:?}", sprite_masks);
+        JsValue::from_serde(&sprite_masks).unwrap()
     }
 }
 
@@ -432,13 +568,14 @@ impl PlayMap {
     }
 
     pub fn from_data(play_map_data: PlayMapData) -> PlayMap {
+        let tile_size = &play_map_data.tile_size;
         PlayMap::new(
             play_map_data.rows,
             play_map_data.cols,
             play_map_data.tile_data.into_iter().map(|t| {
-                MapTile::from_data(t)
+                MapTile::from_data(t, tile_size)
             }).collect(),
-            play_map_data.tile_size
+            *tile_size
         )
     }
 
@@ -524,6 +661,22 @@ impl PlayMap {
         (0, None)
     }
 
+    fn get_sprite_masks(&self, rect: Rect, z: i32, level: i8, upright: bool) -> Vec<TileMasks> {
+        let sprite_tiles = self.get_span_tiles_with_position(&rect);
+        log!("sprite_tiles: {:?}", sprite_tiles);
+        let mut sprite_masks = vec![];
+        sprite_tiles.iter().for_each(|(tx, ty, map_tile)| {
+            let tile_masks = map_tile.get_masks(z, level, upright);
+            log!("tile_masks: {} {} {:?}", tx, ty, tile_masks);
+            if let Some(masks) = tile_masks {
+                log!("masks: {:?}", masks);
+                sprite_masks.push(TileMasks::new(*tx, *ty, masks));
+            }
+        });
+        log!("*sprite_masks: {:?}", sprite_masks);
+        sprite_masks
+    }
+
     fn get_index(&self, x: u8, y: u8) -> usize {
         y as usize * self.cols as usize + x as usize
     }
@@ -546,6 +699,19 @@ impl PlayMap {
             for y in ty1..ty2 {
                 if let Some(tile) = self.tiles.get(self.get_index(x, y)) {
                     span_tiles.push(tile)
+                }
+            }
+        }
+        span_tiles
+    }
+
+    fn get_span_tiles_with_position(&self, rect: &Rect) -> Vec<(u8, u8, &MapTile)> {
+        let (tx1, ty1, tx2, ty2) = self.convert_rect(rect);
+        let mut span_tiles = vec![];
+        for x in tx1..tx2 {
+            for y in ty1..ty2 {
+                if let Some(tile) = self.tiles.get(self.get_index(x, y)) {
+                    span_tiles.push((x, y, tile))
                 }
             }
         }

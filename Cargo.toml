@@ -1,7 +1,7 @@
 [package]
 name = "wasm-ulmo-map"
-version = "0.1.0"
-authors = ["seldred <samuel.eldred@anaplan.com>"]
+version = "0.1.5"
+authors = ["seldred <samuel.eldred@gmail.com>"]
 edition = "2018"
 
 [lib]
