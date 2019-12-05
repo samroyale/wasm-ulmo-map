@@ -1,14 +1,19 @@
 [package]
 name = "wasm-ulmo-map"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["seldred <samuel.eldred@gmail.com>"]
 edition = "2018"
+description = "An implementation of the Ulmo game map in web assembly"
+repository = "https://github.com/samroyale/wasm-ulmo-map"
+license = "Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["console_error_panic_hook"]
+#default = ["console_error_panic_hook"]
+default = ["wee_alloc"]
+#default = ["console_error_panic_hook", "wee_alloc"]
 
 [dependencies]
 #wasm-bindgen = "0.2"

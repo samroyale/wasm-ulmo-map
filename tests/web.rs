@@ -231,7 +231,7 @@ pub fn test_play_map_get_masks_sprite_flat() {
     let sprite_z = get_z_index(sprite_rect, 4, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, false);
     let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
-    assert_eq!(masks.len(), 2); // TODO: should be 0?
+    assert_eq!(masks.len(), 0); // TODO: should be 0?
 
     /*
      * spans [m2 0] [m2 0]

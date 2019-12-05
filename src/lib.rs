@@ -155,6 +155,15 @@ impl MaskInfo {
         };
         MaskInfo { tile_index, level, flat, z1, z2}
     }
+
+    pub fn from_data(mask_data: Vec<(u8, i8, bool, u8)>, tile_size: &u32) -> Vec<MaskInfo> {
+        mask_data.into_iter()
+            .map(|m| {
+                let (tile_index, level, flat, ty) = m;
+                MaskInfo::new(tile_index, level, flat, ty, *tile_size)
+            })
+            .collect()
+    }
 }
 
 #[wasm_bindgen]
@@ -191,17 +200,12 @@ impl MapTile {
                     }
                 })
                 .collect(),
-            MapTile::as_masks(map_tile_data.masks, tile_size)
+            MapTile::masks_from_data(map_tile_data.masks, tile_size)
         )
     }
 
-    fn as_masks(mask_data: Vec<(u8, i8, bool, u8)>, tile_size: &u32) -> Option<Vec<MaskInfo>> {
-        let mask_infos: Vec<MaskInfo> = mask_data.into_iter()
-            .map(|m| {
-                let (tile_index, level, flat, ty) = m;
-                MaskInfo::new(tile_index, level, flat, ty, *tile_size)
-            })
-            .collect();
+    fn masks_from_data(mask_data: Vec<(u8, i8, bool, u8)>, tile_size: &u32) -> Option<Vec<MaskInfo>> {
+        let mask_infos = MaskInfo::from_data(mask_data, tile_size);
         if mask_infos.is_empty() {
             None
         }
@@ -228,6 +232,33 @@ impl MapTile {
             return Some(*dl)
         }
         None
+    }
+
+    fn get_masking_indices(mask_infos: &Vec<MaskInfo>, sprite_z: i32, sprite_level: i8, sprite_upright: bool) -> Vec<u8> {
+        mask_infos.iter()
+            .filter(|mi| {
+                if mi.flat {
+                    mi.level > sprite_level
+                }
+                else {
+                    mi.level >= sprite_level
+                }
+            })
+            .filter(|mi| {
+                if sprite_upright {
+//                    log!("using z1: {} ({})", mi.z1, sprite_z);
+                    mi.z1 > sprite_z
+                }
+                else {
+//                    log!("using z2: {} ({})", mi.z2, sprite_z);
+                    mi.z2 > sprite_z
+                }
+            })
+            .map(|mi| {
+//                log!("mapping: {} ({})", mi.z1, sprite_z);
+                mi.tile_index
+            })
+            .collect()
     }
 
     pub fn get_validity_of(&self, level: i8) -> (u8, Option<i8>) {
@@ -262,57 +293,12 @@ impl MapTile {
         }
     }
 
-//    pub fn get_masks(&self, sprite_z: i32, sprite_level: i8, sprite_upright: bool) -> Option<Vec<u8>> {
-////        log!("tile masks: {:?}", &self.masks);
-//        match &self.masks {
-//            None => None,
-//            Some(mask_infos) => Some(
-//                mask_infos.iter()
-//                    .filter(|mi| {
-//                        !(mi.flat && mi.level == sprite_level)
-//                    })
-//                    .filter(|mi| {
-//                        if sprite_upright {
-//                            log!("using z1: {} ({})", mi.z1, sprite_z);
-//                            mi.z1 > sprite_z
-//                        }
-//                        else {
-//                            log!("using z2: {} ({})", mi.z2, sprite_z);
-//                            mi.z2 > sprite_z
-//                        }
-//                    })
-//                    .map(|mi| {
-//                        log!("mapping: {} ({})", mi.z1, sprite_z);
-//                        mi.tile_index
-//                    })
-//                    .collect()
-//            ),
-//        }
-//    }
     pub fn get_masks(&self, sprite_z: i32, sprite_level: i8, sprite_upright: bool) -> Option<Vec<u8>> {
-    //        log!("tile masks: {:?}", &self.masks);
+//        log!("tile masks: {:?}", &self.masks);
         match &self.masks {
             None => None,
             Some(mask_infos) => {
-                let tile_indices: Vec<u8> = mask_infos.iter()
-                    .filter(|mi| {
-                        !(mi.flat && mi.level == sprite_level)
-                    })
-                    .filter(|mi| {
-                        if sprite_upright {
-                            log!("using z1: {} ({})", mi.z1, sprite_z);
-                            mi.z1 > sprite_z
-                        }
-                        else {
-                            log!("using z2: {} ({})", mi.z2, sprite_z);
-                            mi.z2 > sprite_z
-                        }
-                    })
-                    .map(|mi| {
-                        log!("mapping: {} ({})", mi.z1, sprite_z);
-                        mi.tile_index
-                    })
-                    .collect();
+                let tile_indices = MapTile::get_masking_indices(mask_infos, sprite_z, sprite_level, sprite_upright);
                 if tile_indices.is_empty() {
                     None
                 }
@@ -448,12 +434,15 @@ pub struct PlayMap {
 #[wasm_bindgen]
 impl PlayMap {
     pub fn from_js_data(val: &JsValue) -> PlayMap {
+        utils::set_panic_hook();
+
         let play_map_data: PlayMapData = val.into_serde().unwrap();
+        log!("initializing PlayMap with {} tiles", play_map_data.tile_data.len());
         PlayMap::from_data(play_map_data)
     }
 
     pub fn apply_move(&self, mx: i8, my: i8, level: i8, base_rect: Rect) -> MoveResult {
-        log!("apply_move: received {} {} {} {:?}", mx, my, level, base_rect);
+//        log!("apply_move: received {} {} {} {:?}", mx, my, level, base_rect);
         let new_base_rect = base_rect.move_rect(mx, my);
         let (span_tiles, verticals, horizontals) = self.get_span_tiles_with_stripes(&new_base_rect);
 //        log!("span_tiles: {:?}", span_tiles);
@@ -534,9 +523,9 @@ impl PlayMap {
     }
 
     pub fn get_js_sprite_masks(&self, rect: Rect, z: i32, level: i8, upright: bool) -> JsValue {
-        log!("get_js_sprite_masks: received {:?} {} {} {}", rect, z, level, upright);
+//        log!("get_js_sprite_masks: received {:?} {} {} {}", rect, z, level, upright);
         let sprite_masks = self.get_sprite_masks(rect, z, level, upright);
-        log!("sprite masks: {:?}", sprite_masks);
+//        log!("sprite masks: {:?}", sprite_masks);
         JsValue::from_serde(&sprite_masks).unwrap()
     }
 }
@@ -663,17 +652,16 @@ impl PlayMap {
 
     fn get_sprite_masks(&self, rect: Rect, z: i32, level: i8, upright: bool) -> Vec<TileMasks> {
         let sprite_tiles = self.get_span_tiles_with_position(&rect);
-        log!("sprite_tiles: {:?}", sprite_tiles);
+//        log!("sprite_tiles: {:?}", sprite_tiles);
         let mut sprite_masks = vec![];
-        sprite_tiles.iter().for_each(|(tx, ty, map_tile)| {
+        sprite_tiles.into_iter().for_each(|(tx, ty, map_tile)| {
             let tile_masks = map_tile.get_masks(z, level, upright);
-            log!("tile_masks: {} {} {:?}", tx, ty, tile_masks);
+//            log!("tile_masks: {} {} {:?}", tx, ty, tile_masks);
             if let Some(masks) = tile_masks {
-                log!("masks: {:?}", masks);
-                sprite_masks.push(TileMasks::new(*tx, *ty, masks));
+//                log!("masks: {:?}", masks);
+                sprite_masks.push(TileMasks::new(tx, ty, masks));
             }
         });
-        log!("*sprite_masks: {:?}", sprite_masks);
         sprite_masks
     }
 
@@ -688,7 +676,7 @@ impl PlayMap {
         let (right, bottom) = rect.bottom_right();
         let tx2 = min((self.cols - 1) as i32, (right - 1) / self.tile_size as i32) + 1;
         let ty2 = min((self.rows - 1) as i32, (bottom - 1) / self.tile_size as i32) + 1;
-        log!("{} {} {} {}", tx1, ty1, tx2, ty2);
+//        log!("{} {} {} {}", tx1, ty1, tx2, ty2);
         (tx1 as u8, ty1 as u8, tx2 as u8, ty2 as u8)
     }
 
