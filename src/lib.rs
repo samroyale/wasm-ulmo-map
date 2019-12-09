@@ -27,8 +27,8 @@ fn is_odd(number: &i8) -> bool {
     number & 1 == 1
 }
 
-#[wasm_bindgen]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[wasm_bindgen(js_name = WasmRect)]
+#[derive(Debug, Clone, Copy)]
 pub struct Rect {
     left: i32,
     top: i32,
@@ -38,26 +38,11 @@ pub struct Rect {
     height: u32
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_class = WasmRect)]
 impl Rect {
+    #[wasm_bindgen(constructor)]
     pub fn new(x: i32, y: i32, width: u32, height: u32) -> Rect {
         Rect { left: x, top: y, right: x + width as i32, bottom: y + height as i32, width, height }
-    }
-
-    pub fn get_x(&self) -> i32 {
-        self.left
-    }
-
-    pub fn get_y(&self) -> i32 {
-        self.top
-    }
-
-    pub fn get_width(&self) -> u32 {
-        self.width
-    }
-
-    pub fn get_height(&self) -> u32 {
-        self.height
     }
 }
 
@@ -166,7 +151,6 @@ impl MaskInfo {
     }
 }
 
-#[wasm_bindgen]
 #[derive(Debug)]
 pub struct MapTile {
     levels: Vec<i8>,
@@ -320,41 +304,27 @@ enum Deferral {
 #[wasm_bindgen]
 #[derive(Debug)]
 pub struct MoveResult {
-    valid: bool,
-    deferral: u8,
-    level: i8,
-    mx: i8,
-    my: i8
+    #[wasm_bindgen(readonly)]
+    pub valid: bool,
+
+    #[wasm_bindgen(readonly)]
+    pub deferral: u8,
+
+    #[wasm_bindgen(readonly)]
+    pub level: i8,
+
+    #[wasm_bindgen(readonly)]
+    pub mx: i8,
+
+    #[wasm_bindgen(readonly)]
+    pub my: i8
 }
 
-#[wasm_bindgen]
 impl MoveResult {
     pub fn new(valid: bool, deferral: u8, level: i8, mx: i8, my: i8) -> MoveResult {
         MoveResult { valid, deferral, level, mx, my }
     }
 
-    pub fn is_valid(&self) -> bool {
-        self.valid
-    }
-
-    pub fn get_deferral(&self) -> u8 {
-        self.deferral
-    }
-
-    pub fn get_level(&self) -> i8 {
-        self.level
-    }
-
-    pub fn get_mx(&self) -> i8 {
-        self.mx
-    }
-
-    pub fn get_my(&self) -> i8 {
-        self.my
-    }
-}
-
-impl MoveResult {
     pub fn as_tuple(&self) -> (bool, u8, i8, i8, i8) {
         (self.valid, self.deferral, self.level, self.mx, self.my)
     }
@@ -362,33 +332,20 @@ impl MoveResult {
 
 // enum with explicit discriminator
 enum EventType {
-    NONE = 0,
     FALLING = 1,
 }
 
-#[wasm_bindgen]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MapEvent {
     event_type: u8,
     value: u8,
 }
 
-#[wasm_bindgen]
 impl MapEvent {
-    pub fn new(event_type: u8, value: u8) -> MapEvent {
-        MapEvent { event_type, value }
+    pub fn falling_event(value: u8) -> MapEvent {
+        MapEvent { event_type: EventType::FALLING as u8, value }
     }
 
-    pub fn get_event_type(&self) -> u8 {
-        self.event_type
-    }
-
-    pub fn get_value(&self) -> u8 {
-        self.value
-    }
-}
-
-impl MapEvent {
     pub fn as_tuple(&self) -> (u8, u8) {
         (self.event_type, self.value)
     }
@@ -422,8 +379,7 @@ impl PlayMapData {
     }
 }
 
-#[wasm_bindgen]
-#[derive(Debug)]
+#[wasm_bindgen(js_name = WasmPlayMap)]
 pub struct PlayMap {
     rows: u8,
     cols: u8,
@@ -431,8 +387,9 @@ pub struct PlayMap {
     tile_size: u32
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_class = WasmPlayMap)]
 impl PlayMap {
+    #[wasm_bindgen(constructor)]
     pub fn from_js_data(val: &JsValue) -> PlayMap {
         utils::set_panic_hook();
 
@@ -441,6 +398,7 @@ impl PlayMap {
         PlayMap::from_data(play_map_data)
     }
 
+    #[wasm_bindgen(js_name = applyMove)]
     pub fn apply_move(&self, mx: i8, my: i8, level: i8, base_rect: Rect) -> MoveResult {
 //        log!("apply_move: received {} {} {} {:?}", mx, my, level, base_rect);
         let new_base_rect = base_rect.move_rect(mx, my);
@@ -491,21 +449,7 @@ impl PlayMap {
         MoveResult::new(false, Deferral::NONE as u8, level, 0, 0)
     }
 
-    pub fn get_event(&self, level: i8, base_rect: Rect) -> MapEvent {
-//        log!("get_event: received {} {:?}", level, base_rect);
-        let span_tiles = self.get_span_tiles(&base_rect);
-        let falling = span_tiles.iter().all(| tile | {
-            tile.get_down_level(&level).is_some()
-        });
-        if falling {
-            let down_level = span_tiles.get(0).unwrap().get_down_level(&level).unwrap();
-            MapEvent::new(EventType::FALLING as u8, down_level)
-        }
-        else {
-            MapEvent::new(EventType::NONE as u8, 0)
-        }
-    }
-
+    #[wasm_bindgen(js_name = addLevelToTile)]
     pub fn add_level_to_tile(&mut self, tx: u8, ty: u8, level: i8) {
 //        log!("add_level_to_tile: received {} {} {}", tx, ty, level);
         let index = self.get_index(tx, ty);
@@ -514,6 +458,7 @@ impl PlayMap {
         }
     }
 
+    #[wasm_bindgen(js_name = rollbackTile)]
     pub fn rollback_tile(&mut self, tx: u8, ty: u8) {
 //        log!("rollback_tile: received {} {}", tx, ty);
         let index = self.get_index(tx, ty);
@@ -522,6 +467,24 @@ impl PlayMap {
         }
     }
 
+    #[wasm_bindgen(js_name = getEvent)]
+    pub fn get_js_event(&self, level: i8, base_rect: Rect) -> JsValue {
+//        log!("get_event: received {} {:?}", level, base_rect);
+        let span_tiles = self.get_span_tiles(&base_rect);
+        let falling = span_tiles.iter().all(| tile | {
+            tile.get_down_level(&level).is_some()
+        });
+        if falling {
+            let down_level = span_tiles.get(0).unwrap().get_down_level(&level).unwrap();
+            let map_event = MapEvent::falling_event(down_level);
+            JsValue::from_serde(&map_event).unwrap()
+        }
+        else {
+            JsValue::NULL
+        }
+    }
+
+    #[wasm_bindgen(js_name = getSpriteMasks)]
     pub fn get_js_sprite_masks(&self, rect: Rect, z: i32, level: i8, upright: bool) -> JsValue {
 //        log!("get_js_sprite_masks: received {:?} {} {} {}", rect, z, level, upright);
         let sprite_masks = self.get_sprite_masks(rect, z, level, upright);

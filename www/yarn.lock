@@ -3801,7 +3801,7 @@ vm-browserify@^1.0.1:
   integrity sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==
 
 "wasm-ulmo-map@file:../pkg":
-  version "0.1.0"
+  version "0.1.6"
 
 watchpack@^1.6.0:
   version "1.6.0"

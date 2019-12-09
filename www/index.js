@@ -1,8 +1,7 @@
-import { PlayMap, Rect } from "wasm-ulmo-map";
+import { WasmPlayMap, WasmRect } from "wasm-ulmo-map";
 
-// construct an example map
-// const playMap = PlayMap.an_example()
-const playMap = PlayMap.from_js_data({
+// construct a test map
+const playMap = new WasmPlayMap({
     rows: 4,
     cols: 3,
     tile_data: [{
@@ -13,7 +12,7 @@ const playMap = PlayMap.from_js_data({
     }, {
         levels:[],
         down_levels:[],
-        special_levels:[],
+        special_levels:[4],
         masks: []
     }, {
         levels:[4],
@@ -28,7 +27,7 @@ const playMap = PlayMap.from_js_data({
     }, {
         levels:[],
         down_levels:[],
-        special_levels:[],
+        special_levels:[3],
         masks: []
     }, {
         levels:[],
@@ -43,7 +42,7 @@ const playMap = PlayMap.from_js_data({
     }, {
         levels:[],
         down_levels:[],
-        special_levels:[],
+        special_levels:[3],
         masks: []
     }, {
         levels:[2],
@@ -58,12 +57,98 @@ const playMap = PlayMap.from_js_data({
     }, {
         levels:[],
         down_levels:[],
-        special_levels:[],
+        special_levels:[2],
         masks: []
     }, {
         levels:[2],
         down_levels:[],
         special_levels:[],
+        masks: []
+    }],
+    tile_size: 16
+});
+
+// construct a test map with events
+const playMapWithEvents = new WasmPlayMap({
+    rows: 2,
+    cols: 3,
+    tile_data: [{
+        levels: [6],
+        down_levels: [],
+        special_levels: [],
+        masks: []
+    }, {
+        levels: [6],
+        down_levels: [],
+        special_levels: [],
+        masks: []
+    }, {
+        levels: [6],
+        down_levels: [],
+        special_levels: [],
+        masks: []
+    }, {
+        levels: [],
+        down_levels: [],
+        special_levels: [],
+        masks: []
+    }, {
+        levels: [],
+        down_levels: [[6, 4]],
+        special_levels: [],
+        masks: []
+    }, {
+        levels: [],
+        down_levels: [],
+        special_levels: [],
+        masks: []
+    }],
+    tile_size: 16
+});
+
+// construct a test map with masks
+const playMapWithMasks = new WasmPlayMap({
+    rows: 4,
+    cols: 2,
+    tile_data: [{
+        levels: [],
+        down_levels: [],
+        special_levels: [],
+        masks: []
+    }, {
+        levels: [],
+        down_levels: [],
+        special_levels: [],
+        masks: []
+    }, {
+        levels: [],
+        down_levels: [],
+        special_levels: [],
+        masks: [[1, 4, true, 1]]
+    }, {
+        levels: [],
+        down_levels: [],
+        special_levels: [],
+        masks: [[1, 4, true, 1]]
+    }, {
+        levels: [],
+        down_levels: [],
+        special_levels: [],
+        masks: [[0, 2, false, 2]]
+    }, {
+        levels: [],
+        down_levels: [],
+        special_levels: [],
+        masks: [[0, 2, false, 2]]
+    }, {
+        levels: [],
+        down_levels: [],
+        special_levels: [],
+        masks: []
+    }, {
+        levels: [],
+        down_levels: [],
+        special_levels: [],
         masks: []
     }],
     tile_size: 16
@@ -117,30 +202,93 @@ max of last 100 = ${Math.round(max)}
 const testUlmoButton = document.getElementById("test-ulmo");
 const testResults = document.getElementById("test-results");
 
-const formatApplyMoveResult = result => {
-    return `Result { valid: ${result.is_valid()}, deferral: ${result.get_deferral()}, level: ${result.get_level()}, mx: ${result.get_mx()}, my: ${result.get_my()} }\n`;
+const zIndex = (rectBottom, level, tileSize) => rectBottom + level * tileSize;
+
+const formatMoveResult = result => {
+    let { valid, deferral, level, mx, my } = result;
+    return `MoveResult { valid: ${valid}, deferral: ${deferral}, level: ${level}, mx: ${mx}, my: ${my} }\n`;
+};
+
+const runApplyMove = () => {
+    let results = "";
+
+    // valid
+    let result = playMap.applyMove(2, 0, 4, new WasmRect(2, 2, 16, 8));
+    results += formatMoveResult(result);
+
+    // diagonal
+    result = playMap.applyMove(2, 2, 4, new WasmRect(2, 0, 16, 8));
+    results += formatMoveResult(result);
+
+    // shuffle
+    result = playMap.applyMove(2, 0, 4, new WasmRect(0, 12, 16, 8));
+    results += formatMoveResult(result);
+
+    // slide
+    result = playMap.applyMove(2, 2, 2, new WasmRect(0, 44, 16, 8));
+    results += formatMoveResult(result);
+
+    // invalid
+    result = playMap.applyMove(2, 0, 2, new WasmRect(0, 34, 16, 8));
+    results += formatMoveResult(result);
+
+    return results;
+};
+
+const formatMapEvent = event => {
+    if (event) {
+        let { event_type, value } = event;
+        return `MapEvent { event_type: ${event_type}, value: ${value} }\n`;
+    }
+    return "NULL\n";
+};
+
+const runGetEvent = () => {
+    let results = "";
+
+    let event = playMapWithEvents.getEvent(6, new WasmRect(20, 6, 8, 16));
+    results += formatMapEvent(event);
+
+    event = playMapWithEvents.getEvent(6, new WasmRect(20, 16, 8, 16));
+    results += formatMapEvent(event);
+
+    return results;
+};
+
+const formatMasks = masks => {
+    let masksJson = JSON.stringify(masks);
+    return `TileMasks { ${masksJson} }\n`;
+};
+
+const runGetSpriteMasks = () => {
+    let results = "";
+
+    let masks = playMapWithMasks.getSpriteMasks(
+        new WasmRect(8, 2, 16, 8),
+        zIndex(10, 2, 16),
+        2,
+        true
+    );
+    results += formatMasks(masks);
+
+    masks = playMapWithMasks.getSpriteMasks(
+        new WasmRect(8, 28, 16, 8),
+        zIndex(36, 2, 16),
+        2,
+        true
+    );
+    results += formatMasks(masks);
+
+    return results;
 };
 
 const runTest = () => {
-   let results = "";
-
-    // valid
-    let result = playMap.apply_move(0, 0, 4, Rect.new(4, 2, 16, 8));
-    results += formatApplyMoveResult(result);
-
-    // shuffle
-    result = playMap.apply_move(2, 0, 4, Rect.new(0, 12, 16, 8));
-    results += formatApplyMoveResult(result);
-
-    // slide
-    result = playMap.apply_move(2, 2, 2, Rect.new(0, 44, 16, 8));
-    results += formatApplyMoveResult(result);
-
-    // invalid
-    result = playMap.apply_move(2, 0, 2, Rect.new(0, 34, 16, 8));
-    results += formatApplyMoveResult(result);
-
-    testResults.textContent = results;
+    let results = [
+      runApplyMove(),
+      runGetEvent(),
+      runGetSpriteMasks()
+    ];
+    testResults.textContent = results.join("\n");
 };
 
 testUlmoButton.addEventListener("click", event => {

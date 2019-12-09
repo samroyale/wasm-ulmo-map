@@ -13,7 +13,8 @@ fn pass() {
 }
 
 extern crate wasm_ulmo_map;
-use wasm_ulmo_map::{PlayMap, Rect, MapTileData, PlayMapData, TileMasks};
+use wasm_ulmo_map::{PlayMap, Rect, MapTileData, PlayMapData, TileMasks, MapEvent};
+use wasm_bindgen::JsValue;
 
 // [4] [S4] [4]  <- level 4
 // [X] [S3] [X]  <- top of steps + wall on either side
@@ -520,7 +521,8 @@ pub fn test_play_map_get_event() {
     let play_map = an_example_play_map_with_down_levels();
 
     /*
-     * spans [6] [D6-4]
+     * spans   [6]
+     *       [D6-4]
      */
     let (valid, defer, level, mx, my) = play_map.apply_move(0, 2, 6, Rect::new(20, 4, 8, 16)).as_tuple();
     assert!(valid);
@@ -529,9 +531,8 @@ pub fn test_play_map_get_event() {
     assert_eq!(mx, 0);
     assert_eq!(my, 2);
 
-    let (event, value) = play_map.get_event(6, Rect::new(20, 6, 8, 16)).as_tuple();
-    assert_eq!(event, 0);
-    assert_eq!(value, 0);
+    let js_value = play_map.get_js_event(6, Rect::new(20, 6, 8, 16));
+    assert_eq!(js_value, JsValue::NULL);
 
     /*
      * spans [D6-4]
@@ -543,8 +544,10 @@ pub fn test_play_map_get_event() {
     assert_eq!(mx, 0);
     assert_eq!(my, 2);
 
-    let (event, value) = play_map.get_event(6, Rect::new(20, 16, 8, 16)).as_tuple();
-    assert_eq!(event, 1);
+    let js_value = play_map.get_js_event(6, Rect::new(20, 16, 8, 16));
+    let event: MapEvent = js_value.into_serde().unwrap();
+    let (event_type, value) = event.as_tuple();
+    assert_eq!(event_type, 1);
     assert_eq!(value, 4);
 }
 
