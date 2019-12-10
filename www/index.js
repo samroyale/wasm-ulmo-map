@@ -4,154 +4,154 @@ import { WasmPlayMap, WasmRect } from "wasm-ulmo-map";
 const playMap = new WasmPlayMap({
     rows: 4,
     cols: 3,
-    tile_data: [{
-        levels:[4],
-        down_levels:[],
-        special_levels:[],
+    tileData: [{
+        levels: [4],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
-        levels:[],
-        down_levels:[],
-        special_levels:[4],
+        levels: [],
+        downLevels: [],
+        specialLevels: [4],
         masks: []
     }, {
-        levels:[4],
-        down_levels:[],
-        special_levels:[],
+        levels: [4],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
-        levels:[],
-        down_levels:[],
-        special_levels:[],
+        levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
-        levels:[],
-        down_levels:[],
-        special_levels:[3],
+        levels: [],
+        downLevels: [],
+        specialLevels: [3],
         masks: []
     }, {
-        levels:[],
-        down_levels:[],
-        special_levels:[],
+        levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
-        levels:[2],
-        down_levels:[],
-        special_levels:[],
+        levels: [2],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
-        levels:[],
-        down_levels:[],
-        special_levels:[3],
+        levels: [],
+        downLevels: [],
+        specialLevels: [3],
         masks: []
     }, {
-        levels:[2],
-        down_levels:[],
-        special_levels:[],
+        levels: [2],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
-        levels:[2],
-        down_levels:[],
-        special_levels:[],
+        levels: [2],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
-        levels:[],
-        down_levels:[],
-        special_levels:[2],
+        levels: [],
+        downLevels: [],
+        specialLevels: [2],
         masks: []
     }, {
-        levels:[2],
-        down_levels:[],
-        special_levels:[],
+        levels: [2],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }],
-    tile_size: 16
+    tileSize: 16
 });
 
 // construct a test map with events
 const playMapWithEvents = new WasmPlayMap({
     rows: 2,
     cols: 3,
-    tile_data: [{
+    tileData: [{
         levels: [6],
-        down_levels: [],
-        special_levels: [],
-        masks: []
-    }, {
-        levels: [6],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
         levels: [6],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
+        masks: []
+    }, {
+        levels: [6],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
         levels: [],
-        down_levels: [[6, 4]],
-        special_levels: [],
+        downLevels: [[6, 4]],
+        specialLevels: [],
         masks: []
     }, {
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }],
-    tile_size: 16
+    tileSize: 16
 });
 
 // construct a test map with masks
 const playMapWithMasks = new WasmPlayMap({
     rows: 4,
     cols: 2,
-    tile_data: [{
+    tileData: [{
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: [[1, 4, true, 1]]
     }, {
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: [[1, 4, true, 1]]
     }, {
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: [[0, 2, false, 2]]
     }, {
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: [[0, 2, false, 2]]
     }, {
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }, {
         levels: [],
-        down_levels: [],
-        special_levels: [],
+        downLevels: [],
+        specialLevels: [],
         masks: []
     }],
-    tile_size: 16
+    tileSize: 16
 });
 
 /*
@@ -237,8 +237,8 @@ const runApplyMove = () => {
 
 const formatMapEvent = event => {
     if (event) {
-        let { event_type, value } = event;
-        return `MapEvent { event_type: ${event_type}, value: ${value} }\n`;
+        let { eventType, value } = event;
+        return `MapEvent { eventType: ${eventType}, value: ${value} }\n`;
     }
     return "NULL\n";
 };

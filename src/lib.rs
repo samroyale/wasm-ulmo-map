@@ -74,7 +74,8 @@ impl Rect {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct  MapTileData {
     levels: Vec<i8>,
     down_levels: Vec<(i8, u8)>,
@@ -336,6 +337,7 @@ enum EventType {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MapEvent {
     event_type: u8,
     value: u8,
@@ -352,6 +354,7 @@ impl MapEvent {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct TileMasks {
     tx: u8,
     ty: u8,
@@ -364,7 +367,8 @@ impl TileMasks {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlayMapData {
     rows: u8,
     cols: u8,
