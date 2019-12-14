@@ -1,6 +1,6 @@
 [package]
 name = "wasm-ulmo-map"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["seldred <samuel.eldred@gmail.com>"]
 edition = "2018"
 description = "An implementation of the Ulmo game map in web assembly"
