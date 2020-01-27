@@ -265,16 +265,14 @@ impl MapTile {
         (0, None)
     }
 
-    pub fn add_level(&mut self, level: i8) {
-        //self.levels;
+    pub fn add_levels(&mut self, levels: &mut Vec<i8>) {
         self.old_levels = Some(self.levels.clone());
-        self.levels.push(level);
+        self.levels.append(levels);
     }
 
     pub fn rollback(&mut self) {
-        if let Some(levels) = &self.old_levels {
-            self.levels = levels.clone(); // could we do this with a pointer or something?
-            self.old_levels = None;
+        if let Some(levels) = self.old_levels.take() {
+            self.levels = levels;
         }
     }
 
@@ -458,7 +456,8 @@ impl PlayMap {
 //        log!("add_level_to_tile: received {} {} {}", tx, ty, level);
         let index = self.get_index(tx, ty);
         if let Some(tile) = self.tiles.get_mut(index) {
-            tile.add_level(level);
+            let mut levels = vec![level];
+            tile.add_levels(&mut levels);
         }
     }
 
