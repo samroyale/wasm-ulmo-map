@@ -12,6 +12,8 @@ fn pass() {
     assert_eq!(1 + 1, 2);
 }
 
+extern crate serde_wasm_bindgen;
+
 extern crate wasm_ulmo_map;
 use wasm_ulmo_map::{PlayMap, Rect, MapTileData, PlayMapData, TileMasks, MapEvent};
 use wasm_bindgen::JsValue;
@@ -102,12 +104,13 @@ pub fn test_play_map_get_masks_spright_upright() {
     // sprite level 2
     let sprite_z = get_z_index(sprite_rect, 2, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, true);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    // let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
     // sprite level 4
     let sprite_z = get_z_index(sprite_rect, 4, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, true);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
 
     /*
@@ -118,7 +121,7 @@ pub fn test_play_map_get_masks_spright_upright() {
     // sprite level 2
     let sprite_z = get_z_index(sprite_rect, 2, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, true);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 2);
     let mask1 = masks.get(0).unwrap();
     assert_eq!(mask1, &TileMasks::new(0, 1, vec![1]));
@@ -127,7 +130,7 @@ pub fn test_play_map_get_masks_spright_upright() {
     // sprite level 4
     let sprite_z = get_z_index(sprite_rect, 4, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, true);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
 
     /*
@@ -138,7 +141,7 @@ pub fn test_play_map_get_masks_spright_upright() {
     // sprite level 2
     let sprite_z = get_z_index(sprite_rect, 2, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, true);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 4);
     let mask1 = masks.get(0).unwrap();
     assert_eq!(mask1, &TileMasks::new(0, 1, vec![1]));
@@ -151,7 +154,7 @@ pub fn test_play_map_get_masks_spright_upright() {
     // sprite level 4
     let sprite_z = get_z_index(sprite_rect, 4, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, true);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
 
     /*
@@ -162,12 +165,12 @@ pub fn test_play_map_get_masks_spright_upright() {
     // sprite level 2
     let sprite_z = get_z_index(sprite_rect, 2, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, true);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
     // sprite level 4
     let sprite_z = get_z_index(sprite_rect, 4, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, true);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
 }
 
@@ -182,12 +185,12 @@ pub fn test_play_map_get_masks_sprite_flat() {
     // sprite level 2
     let sprite_z = get_z_index(sprite_rect, 2, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, false);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
     // sprite level 4
     let sprite_z = get_z_index(sprite_rect, 4, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, false);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
 
     /*
@@ -198,7 +201,7 @@ pub fn test_play_map_get_masks_sprite_flat() {
     // sprite level 2
     let sprite_z = get_z_index(sprite_rect, 2, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, false);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 2);
     let mask1 = masks.get(0).unwrap();
     assert_eq!(mask1, &TileMasks::new(0, 1, vec![1]));
@@ -207,7 +210,7 @@ pub fn test_play_map_get_masks_sprite_flat() {
     // sprite level 4
     let sprite_z = get_z_index(sprite_rect, 4, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, false);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
 
     /*
@@ -218,7 +221,7 @@ pub fn test_play_map_get_masks_sprite_flat() {
     // sprite level 2
     let sprite_z = get_z_index(sprite_rect, 2, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, false);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 4);
     let mask1 = masks.get(0).unwrap();
     assert_eq!(mask1, &TileMasks::new(0, 1, vec![1]));
@@ -231,7 +234,7 @@ pub fn test_play_map_get_masks_sprite_flat() {
     // sprite level 4
     let sprite_z = get_z_index(sprite_rect, 4, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, false);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0); // TODO: should be 0?
 
     /*
@@ -242,7 +245,7 @@ pub fn test_play_map_get_masks_sprite_flat() {
     // sprite level 2
     let sprite_z = get_z_index(sprite_rect, 2, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 2, false);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 2);
     let mask1 = masks.get(0).unwrap();
     assert_eq!(mask1, &TileMasks::new(0, 2, vec![0]));
@@ -251,7 +254,7 @@ pub fn test_play_map_get_masks_sprite_flat() {
     // sprite level 4
     let sprite_z = get_z_index(sprite_rect, 4, 16);
     let js_value = play_map.get_js_sprite_masks(sprite_rect, sprite_z, 4, false);
-    let masks: Vec<TileMasks> = js_value.into_serde().unwrap();
+    let masks: Vec<TileMasks> = serde_wasm_bindgen::from_value(js_value).unwrap();
     assert_eq!(masks.len(), 0);
 }
 
@@ -545,7 +548,7 @@ pub fn test_play_map_get_event() {
     assert_eq!(my, 2);
 
     let js_value = play_map.get_js_event(6, Rect::new(20, 16, 8, 16));
-    let event: MapEvent = js_value.into_serde().unwrap();
+    let event: MapEvent = serde_wasm_bindgen::from_value(js_value).unwrap();
     let (event_type, value) = event.as_tuple();
     assert_eq!(event_type, 1);
     assert_eq!(value, 4);

@@ -8,8 +8,10 @@ extern crate web_sys;
 use web_sys::console;
 use wasm_bindgen::__rt::core::cmp::{max, min};
 
-#[macro_use]
-extern crate serde_derive;
+// #[macro_use]
+extern crate serde;
+extern crate serde_wasm_bindgen;
+use serde::{Serialize, Deserialize};
 
 // A macro to provide `println!(..)`-style syntax for `console.log` logging.
 macro_rules! log {
@@ -392,10 +394,11 @@ pub struct PlayMap {
 #[wasm_bindgen(js_class = WasmPlayMap)]
 impl PlayMap {
     #[wasm_bindgen(constructor)]
-    pub fn from_js_data(val: &JsValue) -> PlayMap {
+    pub fn from_js_data(val: JsValue) -> PlayMap {
         utils::set_panic_hook();
 
-        let play_map_data: PlayMapData = val.into_serde().unwrap();
+        // let play_map_data: PlayMapData = val.into_serde().unwrap();
+        let play_map_data: PlayMapData = serde_wasm_bindgen::from_value(val).unwrap();
         log!("initializing PlayMap with {} tiles", play_map_data.tile_data.len());
         PlayMap::from_data(play_map_data)
     }
@@ -480,7 +483,8 @@ impl PlayMap {
         if falling {
             let down_level = span_tiles.get(0).unwrap().get_down_level(&level).unwrap();
             let map_event = MapEvent::falling_event(down_level);
-            JsValue::from_serde(&map_event).unwrap()
+            // JsValue::from_serde(&map_event).unwrap()
+            serde_wasm_bindgen::to_value(&map_event).unwrap()
         }
         else {
             JsValue::NULL
@@ -492,7 +496,8 @@ impl PlayMap {
 //        log!("get_js_sprite_masks: received {:?} {} {} {}", rect, z, level, upright);
         let sprite_masks = self.get_sprite_masks(rect, z, level, upright);
 //        log!("sprite masks: {:?}", sprite_masks);
-        JsValue::from_serde(&sprite_masks).unwrap()
+        // JsValue::from_serde(&sprite_masks).unwrap()
+        serde_wasm_bindgen::to_value(&sprite_masks).unwrap()
     }
 }
 
